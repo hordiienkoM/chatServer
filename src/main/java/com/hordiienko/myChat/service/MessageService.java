@@ -1,5 +1,6 @@
 package com.hordiienko.myChat.service;
 
+import com.hordiienko.myChat.dto.MessageDto;
 import com.hordiienko.myChat.entity.Message;
 import com.hordiienko.myChat.repository.MessageRepository;
 import com.hordiienko.myChat.security.UserDetailsImpl;
@@ -41,12 +42,13 @@ public class MessageService {
                 });
     }
 
-    public Mono<Message> saveMessage(String messageText, UserDetailsImpl user) {
+    public Mono<Message> saveMessage(MessageDto messageDto, UserDetailsImpl user) {
         return Mono.defer(() -> {
             Message message = Message.builder()
                     .userName(user.getUsername())
                     .userId(user.getUserId())
-                    .text(messageText)
+                    .title(messageDto.getTittle())
+                    .text(messageDto.getText())
                     .creationDateTime(LocalDateTime.now())
                     .build();
 
@@ -60,11 +62,12 @@ public class MessageService {
         });
     }
 
-    public Mono<Message> editMessage(Message message, UserDetailsImpl userDetails) {
+    public Mono<Message> editMessage(MessageDto message, UserDetailsImpl userDetails) {
         return messageRepository.findById(message.getId())
                 .flatMap(existingMessage -> {
                     if (existingMessage.getUserId().equals(userDetails.getUserId())) {
                         existingMessage.setText(message.getText());
+                        existingMessage.setTitle(message.getTittle());
                         existingMessage.setEdited(true);
                         existingMessage.setEditDateTime(LocalDateTime.now());
 

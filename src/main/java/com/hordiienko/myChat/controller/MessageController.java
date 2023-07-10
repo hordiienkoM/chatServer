@@ -1,5 +1,6 @@
 package com.hordiienko.myChat.controller;
 
+import com.hordiienko.myChat.dto.MessageDto;
 import com.hordiienko.myChat.entity.Message;
 import com.hordiienko.myChat.security.UserDetailsImpl;
 import com.hordiienko.myChat.service.MessageService;
@@ -16,12 +17,12 @@ public class MessageController {
     private final MessageService messageService;
 
     @PostMapping("/message")
-    public Mono<Message> sendNewMessage(@RequestParam String message, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public Mono<Message> sendNewMessage(@RequestBody MessageDto message, @AuthenticationPrincipal UserDetailsImpl userDetails) {
         return messageService.saveMessage(message, userDetails);
     }
 
     @PutMapping("/message")
-    public Mono<Message> editMessage(@RequestBody Message updatedMessage, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public Mono<Message> editMessage(@RequestBody MessageDto updatedMessage, @AuthenticationPrincipal UserDetailsImpl userDetails) {
         return messageService.editMessage(updatedMessage, userDetails);
     }
 

@@ -18,6 +18,7 @@ public class Message {
     private String userId;
     private String userName;
     private LocalDateTime creationDateTime;
+    private String title;
     private String text;
     private boolean edited;
     private LocalDateTime editDateTime;

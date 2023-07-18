@@ -4,6 +4,7 @@ import com.hordiienko.myChat.dto.MessageDto;
 import com.hordiienko.myChat.dto.MessageSetDto;
 import com.hordiienko.myChat.entity.Message;
 import com.hordiienko.myChat.entity.User;
+import com.hordiienko.myChat.exception.ValidationException;
 import com.hordiienko.myChat.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -12,7 +13,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
-import reactor.util.context.Context;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
@@ -105,12 +105,15 @@ public class MessageService {
                 .flatMap(setMessages -> Mono.just(new MessageSetDto(setMessages)));
     }
 
-    public Mono<MessageSetDto> tempRealizationGetAllAfterDate(LocalDateTime creationDate) {
-        LocalDateTime afterTime = creationDate.plusNanos(1);
-        return messageRepository.findAllAfterCreationDateTime(afterTime)
-                .switchIfEmpty(Mono.empty())
-                .collectList()
-                .flatMap(messages -> Mono.just(new HashSet<>(messages)))
-                .flatMap(setMessages -> Mono.just(new MessageSetDto(setMessages)));
+    public Mono<MessageSetDto> tempRealizationGetAllAfterMessage(String lastMessageId) {
+        return messageRepository.findById(lastMessageId)
+                .switchIfEmpty(Mono.error(new ValidationException("Message by id '" + lastMessageId + "' not found" )))
+                .flatMap(lastMessage -> {
+                    return messageRepository.findAllAfterCreationDateTime(lastMessage.getCreationDateTime())
+                            .switchIfEmpty(Mono.empty())
+                            .collectList()
+                            .flatMap(messages -> Mono.just(new HashSet<>(messages)))
+                            .flatMap(setMessages -> Mono.just(new MessageSetDto(setMessages)));
+                });
     }
 }

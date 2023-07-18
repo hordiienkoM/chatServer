@@ -24,18 +24,20 @@ public class UserService implements ReactiveCredentialsService<User> {
     private final JwtTokenProvider tokenProvider;
 
     public Mono<JwtTokenDto> register(String username, String pass) {
-        return Mono.defer(() -> {
-            this.checkUserAlreadyExits(username);
-            User user = new User();
-            user.setUsername(username);
-            String encodedPass = passwordEncoder.encode(pass);
-            user.setPassword(encodedPass);
-            user.setRoles(Set.of(Role.ROLE_USER));
-            String token = tokenProvider.generateToken(user);
-            user.setToken(token);
-            return this.save(user)
-                    .map(usr -> { return new JwtTokenDto(usr.getToken()); });
-        });
+        return this.checkUserAlreadyExists(username)
+                .flatMap(userExists -> {
+                    if (userExists) {
+                        return Mono.error(new ValidationException("User with name '" + username + "' already exists"));
+                    } else {
+                        User user = new User();
+                        user.setUsername(username);
+                        String encodedPass = passwordEncoder.encode(pass);
+                        user.setPassword(encodedPass);
+                        user.setRoles(Set.of(Role.ROLE_USER));
+                        return this.save(user)
+                                .then(this.login(new AuthDto(username, pass)));
+                    }
+                });
     }
 
     public Mono<JwtTokenDto> login(AuthDto authDto) {
@@ -76,11 +78,9 @@ public class UserService implements ReactiveCredentialsService<User> {
         return userRepository.save(user);
     }
 
-    private Mono<Void> checkUserAlreadyExits (String username) {
-        return this.getByUsername(username)
-                .switchIfEmpty(Mono.empty())
-                .flatMap(user -> Mono.error(new UserAlreadyExistException(username + " - user already exists")))
-                .then();
+    private Mono<Boolean> checkUserAlreadyExists(String username) {
+        return userRepository.findByUsername(username)
+                .hasElement();
     }
 
     public Mono<Void> logout(User user) {

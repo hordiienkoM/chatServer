@@ -1,6 +1,6 @@
 package com.hordiienko.myChat.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
@@ -14,12 +14,12 @@ import java.time.LocalDateTime;
 public class Message {
     @Id
     private String id;
-    @JsonIgnore
-    private String userId;
-    private String userName;
+    private String username;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss.SSS")
     private LocalDateTime creationDateTime;
-    private String title;
+    private String topic;
     private String text;
     private boolean edited;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss.SSS")
     private LocalDateTime editDateTime;
 }

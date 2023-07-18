@@ -1,38 +1,61 @@
 package com.hordiienko.myChat.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hordiienko.myChat.dto.LastDateDto;
 import com.hordiienko.myChat.dto.MessageDto;
+import com.hordiienko.myChat.dto.MessageSetDto;
 import com.hordiienko.myChat.entity.Message;
-import com.hordiienko.myChat.security.UserDetailsImpl;
+import com.hordiienko.myChat.entity.User;
 import com.hordiienko.myChat.service.MessageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@RestController
-@RequestMapping("/api/v1/chat")
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+
+@Controller
 @RequiredArgsConstructor
 public class MessageController {
     private final MessageService messageService;
 
-    @PostMapping("/message")
-    public Mono<Message> sendNewMessage(@RequestBody MessageDto message, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return messageService.saveMessage(message, userDetails);
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @MessageMapping("postMessage")
+    public Mono<Message> postMessage(MessageDto messageDto, @AuthenticationPrincipal User user) {
+        return messageService.saveMessage(messageDto, user);
     }
 
-    @PutMapping("/message")
-    public Mono<Message> editMessage(@RequestBody MessageDto updatedMessage, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return messageService.editMessage(updatedMessage, userDetails);
+    @PreAuthorize("hasRole('ROLE_USER')")
+    @MessageMapping("putMessage")
+    public Mono<Message> putMessage(MessageDto messageDto, @AuthenticationPrincipal User user) {
+        return messageService.changeMessage(messageDto, user);
     }
 
-    @GetMapping()
-    public Flux<Message> get100Last() {
-        return messageService.get100LatestMessages();
+    @MessageMapping("messages")
+    public Flux<Message> lastMessages() {
+        return messageService.getLatestMessages();
     }
 
-    @GetMapping("/previous")
-    public Flux<Message> get100Previous(@RequestParam String messageId) {
-        return messageService.get100PreviousMessages(messageId);
+    @MessageMapping("tempMethodLastMessages")
+    public Mono<MessageSetDto> tempLastMessages() {
+        return messageService.tempRealizationGetLatestMessages();
+    }
+
+    @MessageMapping("tempMethodUpdateChat")
+    public Mono<MessageSetDto> tempUpdateChat(LastDateDto lastDate){
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        LocalDateTime lastMessageDate = LocalDateTime.parse(lastDate.getLastMessageDate(), formatter);
+        MessageSetDto emptySet = new MessageSetDto();
+        emptySet.setMessages(Collections.emptySet());
+        return messageService.tempRealizationGetAllAfterDate(lastMessageDate)
+                .switchIfEmpty(Mono.just(emptySet));
     }
 }

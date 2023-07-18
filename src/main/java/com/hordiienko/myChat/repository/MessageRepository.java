@@ -11,6 +11,6 @@ import java.time.LocalDateTime;
 
 public interface MessageRepository extends ReactiveMongoRepository<Message, String> {
     Flux<Message> findAllByCreationDateTimeBeforeOrderByCreationDateTimeDesc(LocalDateTime dateTime, Pageable pageable);
-    @Query("{ creationDateTime: { $gt: ?0 } }")
+    @Query("{ $or: [ { creationDateTime: { $gt: ?0 } }, { editDateTime: { $gt: ?0 } } ] }")
     Flux<Message> findAllAfterCreationDateTime(LocalDateTime creationDateTime);
 }
